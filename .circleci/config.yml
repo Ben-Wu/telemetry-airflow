@@ -96,7 +96,7 @@ workflows:
             tags:
               only: /.*/
 
-      - test:
+      - test2:
           filters:
             tags:
               only: /.*/
