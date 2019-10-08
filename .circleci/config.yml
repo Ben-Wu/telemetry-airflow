@@ -40,8 +40,8 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - run: make build
-      - run: make run COMMAND=list_dags
+      - run: docker-compose build
+      - run: docker-compose run web airflow list_dags
 
 #  deploy:
 #    docker:
