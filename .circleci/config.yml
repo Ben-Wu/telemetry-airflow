@@ -33,45 +33,53 @@ jobs:
       - run: find . -name *.pyc -delete
       - run: tox -e py27
 
-  deploy:
+  test2:
     docker:
-      - image: docker:18.02.0-ce
+      - image: python:2.7
     working_directory: ~/mozilla/telemetry-airflow
     steps:
       - checkout
-      - setup_remote_docker
-      - run: |
-          printf '{"commit":"%s","version":"%s","source":"https://github.com/%s/%s","build":"%s"}\n' "$CIRCLE_SHA1" "$CIRCLE_TAG" "$CIRCLE_PROJECT_USERNAME" "$CIRCLE_PROJECT_REPONAME" "$CIRCLE_BUILD_URL" > version.json
-      - run: docker build -t app:build .
-      - run:
-          name: Deploy to Dockerhub
-          command: |
-            # Deploy master
-            if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              docker login -u $DOCKER_USER -p $DOCKER_PASS
-              docker tag app:build ${DOCKERHUB_REPO}:latest
-              docker push ${DOCKERHUB_REPO}:latest
-            elif  [ ! -z "${CIRCLE_TAG}" ]; then
-            # Deploy a release tag...
-              docker login -u $DOCKER_USER -p $DOCKER_PASS
-              echo "${DOCKERHUB_REPO}:${CIRCLE_TAG}"
-              docker tag app:build "${DOCKERHUB_REPO}:${CIRCLE_TAG}"
-              docker images
-              docker push "${DOCKERHUB_REPO}:${CIRCLE_TAG}"
-            fi
+      - run: airflow list_dags
 
-  sync_gcs:
-    docker:
-      - image: google/cloud-sdk
-    working_directory: ~/mozilla/telemetry-airflow
-    steps:
-      - checkout
-      - run: |
-          echo $GCLOUD_SERVICE_KEY | gcloud auth activate-service-account --key-file=-
-          gcloud --quiet config set project ${GOOGLE_PROJECT_ID}
-          gcloud --quiet config set compute/zone ${GOOGLE_COMPUTE_ZONE}
-          gsutil rsync -d -r dataproc_bootstrap gs://moz-fx-data-prod-airflow-dataproc-artifacts/bootstrap
-          gsutil rsync -d -r jobs gs://moz-fx-data-prod-airflow-dataproc-artifacts/jobs
+#  deploy:
+#    docker:
+#      - image: docker:18.02.0-ce
+#    working_directory: ~/mozilla/telemetry-airflow
+#    steps:
+#      - checkout
+#      - setup_remote_docker
+#      - run: |
+#          printf '{"commit":"%s","version":"%s","source":"https://github.com/%s/%s","build":"%s"}\n' "$CIRCLE_SHA1" "$CIRCLE_TAG" "$CIRCLE_PROJECT_USERNAME" "$CIRCLE_PROJECT_REPONAME" "$CIRCLE_BUILD_URL" > version.json
+#      - run: docker build -t app:build .
+#      - run:
+#          name: Deploy to Dockerhub
+#          command: |
+#            # Deploy master
+#            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+#              docker login -u $DOCKER_USER -p $DOCKER_PASS
+#              docker tag app:build ${DOCKERHUB_REPO}:latest
+#              docker push ${DOCKERHUB_REPO}:latest
+#            elif  [ ! -z "${CIRCLE_TAG}" ]; then
+#            # Deploy a release tag...
+#              docker login -u $DOCKER_USER -p $DOCKER_PASS
+#              echo "${DOCKERHUB_REPO}:${CIRCLE_TAG}"
+#              docker tag app:build "${DOCKERHUB_REPO}:${CIRCLE_TAG}"
+#              docker images
+#              docker push "${DOCKERHUB_REPO}:${CIRCLE_TAG}"
+#            fi
+#
+#  sync_gcs:
+#    docker:
+#      - image: google/cloud-sdk
+#    working_directory: ~/mozilla/telemetry-airflow
+#    steps:
+#      - checkout
+#      - run: |
+#          echo $GCLOUD_SERVICE_KEY | gcloud auth activate-service-account --key-file=-
+#          gcloud --quiet config set project ${GOOGLE_PROJECT_ID}
+#          gcloud --quiet config set compute/zone ${GOOGLE_COMPUTE_ZONE}
+#          gsutil rsync -d -r dataproc_bootstrap gs://moz-fx-data-prod-airflow-dataproc-artifacts/bootstrap
+#          gsutil rsync -d -r jobs gs://moz-fx-data-prod-airflow-dataproc-artifacts/jobs
 
 
 workflows:
@@ -88,20 +96,25 @@ workflows:
             tags:
               only: /.*/
 
-      - deploy:
-          requires:
-            - test
+      - test2:
           filters:
-            tags:
+            tag:
               only: /.*/
-            branches:
-              only: master
 
-      - sync_gcs:
-          requires:
-            - test
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: master
+#      - deploy:
+#          requires:
+#            - test
+#          filters:
+#            tags:
+#              only: /.*/
+#            branches:
+#              only: master
+#
+#      - sync_gcs:
+#          requires:
+#            - test
+#          filters:
+#            tags:
+#              only: /.*/
+#            branches:
+#              only: master
