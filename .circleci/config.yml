@@ -40,8 +40,8 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - run: docker build -t app:build .
-      - run: docker run app:build "airflow list_dags"
+      - run: make build
+      - run: make run COMMAND=list_dags
 
 #  deploy:
 #    docker:
