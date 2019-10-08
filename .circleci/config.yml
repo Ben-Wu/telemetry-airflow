@@ -96,11 +96,6 @@ workflows:
             tags:
               only: /.*/
 
-      - test2:
-          filters:
-            tag:
-              only: /.*/
-
 #      - deploy:
 #          requires:
 #            - test
